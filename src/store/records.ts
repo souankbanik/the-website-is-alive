@@ -1,9 +1,9 @@
 import type { Stage } from './game';
 
 /**
- * Visitor records. A snapshot of each run of the experience, written to this
- * browser's localStorage so the admin panel (/admin.html) can list it. Local only:
- * nothing is transmitted, and clearing site data removes it.
+ * Visitor records. A snapshot of each run of the experience. It is kept in this
+ * browser's localStorage and, once the visitor has entered a username, sent to
+ * /api/track, where the server adds IP address and approximate location.
  */
 export const REC_PREFIX = 'alive:v1:rec:';
 
@@ -41,9 +41,28 @@ export const STAGE_LABEL: Record<Stage, string> = {
 
 export type Ending = 'delete' | 'live' | 'observer';
 
+/** added by the server (api/track.ts) from the request, never by the client */
+export interface NetInfo {
+  ip: string;
+  lastIp?: string;
+  country: string;
+  region: string;
+  city: string;
+  lat: number | null;
+  lon: number | null;
+  timezone: string;
+  ua: string;
+  referrer: string;
+}
+
 export interface VisitorRecord {
   id: string;
   code: string;
+  username?: string;
+  /** document.referrer: the page the visitor came from */
+  referrer?: string;
+  net?: NetInfo;
+  receivedAt?: number;
   startedAt: number;
   updatedAt: number;
   /** seconds */

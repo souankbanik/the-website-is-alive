@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { STAGE_LABEL, stageIndex } from '../../store/records';
 import { ENDING_LABEL, fmtAgo, fmtDur, Status, STATUSES, STATUS_LABEL, useAdmin, Visitor } from '../store';
-import { Avatar, Empty, Icon, matches, Score, StatusBadge } from '../ui';
+import { Avatar, displayName, Empty, Icon, matches, Place, Score, StatusBadge } from '../ui';
 import { openVisitor } from '../Admin';
 import { downloadCsv } from './Settings';
 
-type SortKey = 'code' | 'status' | 'score' | 'furthest' | 'duration' | 'updatedAt' | 'owner';
+type SortKey = 'name' | 'location' | 'status' | 'score' | 'furthest' | 'duration' | 'updatedAt' | 'owner';
 
 export default function Visitors({ visitors, search }: { visitors: Visitor[]; search: string }) {
   const [status, setStatus] = useState<Status | 'all'>('all');
@@ -31,6 +31,10 @@ export default function Visitors({ visitors, search }: { visitors: Visitor[]; se
       switch (sort.k) {
         case 'status':
           return STATUSES.indexOf(v.status);
+        case 'name':
+          return displayName(v).toLowerCase();
+        case 'location':
+          return v.net ? `${v.net.country} ${v.net.city}` : '~';
         case 'furthest':
           return stageIndex(v.furthest);
         default:
@@ -162,7 +166,8 @@ export default function Visitors({ visitors, search }: { visitors: Visitor[]; se
                     aria-label="Select all"
                   />
                 </th>
-                <Th k="code">Visitor</Th>
+                <Th k="name">Visitor</Th>
+                <Th k="location" className="hide-sm">Location</Th>
                 <Th k="status">Status</Th>
                 <Th k="score">Score</Th>
                 <Th k="furthest">Furthest stage</Th>
@@ -183,15 +188,18 @@ export default function Visitors({ visitors, search }: { visitors: Visitor[]; se
                     <span className="who">
                       <Avatar v={v} size="sm" />
                       <span>
-                        <span className="mono">{v.code}</span>
+                        <strong className="uname">{displayName(v)}</strong>
                         {v.starred && <span className="star-on"><Icon name="star" size={12} filled /></span>}
                         {v.live && <span className="live-tag">live</span>}
                         {v.demo && <span className="demo-tag">demo</span>}
                         <span className="sub">
-                          {v.device.touch ? 'Touch' : 'Desktop'} · {v.device.lang || '—'}
+                          <span className="mono">{v.code}</span> · {v.net?.ip || (v.device.touch ? 'Touch' : 'Desktop')}
                         </span>
                       </span>
                     </span>
+                  </td>
+                  <td className="hide-sm">
+                    <Place net={v.net} />
                   </td>
                   <td>
                     <StatusBadge s={v.status} />

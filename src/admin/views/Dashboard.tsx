@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Ending, STAGE_LABEL, STAGE_ORDER, stageIndex } from '../../store/records';
 import { ENDING_LABEL, fmtAgo, fmtDur, STATUSES, Visitor } from '../store';
-import { Avatar, Card, Empty, Score, StatusBadge } from '../ui';
+import { Avatar, Card, countryName, displayName, Empty, Place, Score, StatusBadge } from '../ui';
 import { go, openVisitor } from '../Admin';
 import { ActivityFeed } from './Activity';
+import { VisitorMap } from './MapView';
 
 const DAY = 86400000;
 const ENDINGS: Ending[] = ['delete', 'live', 'observer'];
@@ -90,11 +91,14 @@ export default function Dashboard({ visitors }: { visitors: Visitor[] }) {
                   <td>
                     <span className="who">
                       <Avatar v={v} size="sm" />
-                      <span className="mono">{v.code}</span>
+                      <span className="strong">{displayName(v)}</span>
                     </span>
                   </td>
                   <td>
                     <StatusBadge s={v.status} />
+                  </td>
+                  <td className="muted">
+                    <Place net={v.net} />
                   </td>
                   <td className="muted">{STAGE_LABEL[v.furthest]}</td>
                   <td>
@@ -109,12 +113,40 @@ export default function Dashboard({ visitors }: { visitors: Visitor[] }) {
         <Card title="Recent activity" action={<a className="link" href="#/activity">View all →</a>}>
           <ActivityFeed visitors={visitors} limit={7} compact />
         </Card>
+
+        <Card title="Where visitors are" action={<a className="link" href="#/map">Open map →</a>} className="span-2">
+          <VisitorMap visitors={visitors} height={300} />
+        </Card>
+        <Card title="Top countries">
+          <TopCountries visitors={visitors} />
+        </Card>
       </div>
     </div>
   );
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+function TopCountries({ visitors }: { visitors: Visitor[] }) {
+  const c = new Map<string, number>();
+  for (const v of visitors) if (v.net?.country) c.set(v.net.country, (c.get(v.net.country) ?? 0) + 1);
+  const rows = [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!rows.length) return <p className="muted small">No location data yet. Locations come from the server, per visitor IP.</p>;
+  return (
+    <ul className="rank">
+      {rows.map(([cc, n]) => (
+        <li key={cc}>
+          <span className="cc">{cc}</span>
+          <span>{countryName(cc)}</span>
+          <span className="rank-bar">
+            <span style={{ width: `${(n / rows[0][1]) * 100}%` }} />
+          </span>
+          <span className="num">{n}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { NetInfo } from '../store/records';
 import { Status, STATUS_LABEL, Visitor } from './store';
 
 const PATHS = {
@@ -20,6 +21,10 @@ const PATHS = {
   user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   sparkle: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6',
   sort: 'M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4',
+  pin: 'M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
+  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
 };
 export type IconName = keyof typeof PATHS;
 
@@ -47,11 +52,11 @@ export function StatusBadge({ s }: { s: Status }) {
 }
 
 /** a small generative mark per visitor so rows are recognisable at a glance */
-export function Avatar({ v, size = 'md' }: { v: Pick<Visitor, 'id' | 'code'>; size?: 'sm' | 'md' | 'lg' }) {
+export function Avatar({ v, size = 'md' }: { v: Pick<Visitor, 'id' | 'code' | 'username'>; size?: 'sm' | 'md' | 'lg' }) {
   const hue = parseInt(v.id.slice(0, 2), 16) * 1.4;
   return (
     <span className={`avatar ${size}`} style={{ background: `hsl(${hue} 45% 26%)`, color: `hsl(${hue} 80% 85%)` }}>
-      {v.code.slice(5, 7)}
+      {(v.username || v.code.slice(5)).slice(0, 2)}
     </span>
   );
 }
@@ -87,11 +92,50 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export function matches(v: Visitor, q: string) {
   if (!q) return true;
-  const hay = [v.code, v.id, v.status, v.owner, v.stage, v.furthest, v.ending ?? '', v.device.lang, ...v.tags, ...v.secrets, ...v.notes.map((n) => n.text)]
+  const hay = [v.username ?? '', v.net?.ip ?? '', v.net?.city ?? '', v.net?.region ?? '', v.net?.country ?? '', v.net ? countryName(v.net.country) : '', v.code, v.id, v.status, v.owner, v.stage, v.furthest, v.ending ?? '', v.device.lang, ...v.tags, ...v.secrets, ...v.notes.map((n) => n.text)]
     .join(' ')
     .toLowerCase();
   return q
     .toLowerCase()
     .split(/\s+/)
     .every((w) => hay.includes(w.replace(/^#/, '')));
+}
+
+/** what to call a visitor: their username, else the generated code */
+export const displayName = (v: { username?: string; code: string }) => v.username || v.code;
+
+let regionNames: Intl.DisplayNames | null = null;
+export function countryName(code: string) {
+  if (!code) return '';
+  try {
+    regionNames ??= new Intl.DisplayNames(['en'], { type: 'region' });
+    return regionNames.of(code.toUpperCase()) || code;
+  } catch {
+    return code;
+  }
+}
+
+export function placeLabel(net?: NetInfo, long = false) {
+  if (!net || (!net.city && !net.country)) return '';
+  const country = long ? countryName(net.country) : net.country;
+  return [net.city, long ? net.region : '', country].filter(Boolean).join(', ');
+}
+
+export function Place({ net }: { net?: NetInfo }) {
+  const label = placeLabel(net);
+  if (!label) return <span className="muted">Unknown</span>;
+  return (
+    <span className="place" title={placeLabel(net, true)}>
+      <span className="cc">{net!.country || '??'}</span>
+      {net!.city || countryName(net!.country)}
+    </span>
+  );
+}
+
+/** short browser / OS description from a user agent string */
+export function describeUa(ua: string) {
+  if (!ua) return '';
+  const os = /Windows/.test(ua) ? 'Windows' : /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'Other OS';
+  const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  return `${br} on ${os}`;
 }

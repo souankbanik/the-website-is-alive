@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { STAGE_LABEL } from '../../store/records';
 import { ENDING_LABEL, fmtAgo, fmtDate, useAdmin, Visitor } from '../store';
-import { Avatar, Card, Empty, Icon, IconName } from '../ui';
+import { Avatar, Card, displayName, Empty, Icon, IconName, placeLabel } from '../ui';
 import { openVisitor } from '../Admin';
 
 type Kind = 'visit' | 'stage' | 'ending' | 'status' | 'note' | 'owner' | 'tag';
@@ -65,11 +65,12 @@ export function ActivityFeed({ visitors, limit, compact, group = 'all' }: { visi
           <span className="feed-body">
             {e.author ? (
               <>
-                <strong>{e.author}</strong> · <span className="mono">{e.v.code}</span> {e.text}
+                <strong>{e.author}</strong> · <span className="strong">{displayName(e.v)}</span> {e.text}
               </>
             ) : (
               <>
-                <span className="mono strong">{e.v.code}</span> {e.text}
+                <span className="strong">{displayName(e.v)}</span> {e.text}
+                {e.kind === 'visit' && placeLabel(e.v.net) && <span className="muted"> from {placeLabel(e.v.net)}</span>}
               </>
             )}
           </span>
@@ -110,8 +111,10 @@ export default function Activity({ visitors }: { visitors: Visitor[] }) {
             {live.map((v) => (
               <li key={v.id} onClick={() => openVisitor(v.id)}>
                 <Avatar v={v} size="sm" />
-                <span className="mono">{v.code}</span>
-                <span className="muted">{STAGE_LABEL[v.stage]}</span>
+                <span>{displayName(v)}</span>
+                <span className="muted">
+                  {placeLabel(v.net) || '—'} · {STAGE_LABEL[v.stage]}
+                </span>
               </li>
             ))}
           </ul>

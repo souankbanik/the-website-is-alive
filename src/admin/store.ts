@@ -116,7 +116,36 @@ export interface Visitor extends VisitorRecord {
   live: boolean;
 }
 
+/**
+ * Where records come from. 'remote' = the /api/visitors endpoint (all visitors,
+ * with IP and location); 'local' = only this browser's localStorage, used when the
+ * site is served without the API.
+ */
+export type Source = 'checking' | 'login' | 'remote' | 'local';
+const TOKEN_KEY = 'alive:admin-token';
+const getToken = () => {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+
+/** server records win; in remote mode the only local rows kept are demo data */
+function merge(local: VisitorRecord[], remote: VisitorRecord[], source?: Source) {
+  const keep = source === 'remote' ? local.filter((r) => r.demo) : local;
+  const byId = new Map(keep.map((r) => [r.id, r]));
+  for (const r of remote) byId.set(r.id, r);
+  return [...byId.values()].sort((a, b) => b.startedAt - a.startedAt);
+}
+
 interface AdminState {
+  source: Source;
+  storage: string;
+  authError: string;
+  remote: VisitorRecord[];
+  connect: (password?: string) => Promise<void>;
+  logout: () => void;
   records: VisitorRecord[];
   crm: CrmData;
   reload: () => void;
@@ -149,10 +178,59 @@ export const useAdmin = create<AdminState>((set, get) => {
     c.activity.push({ id: newId(), t: Date.now(), visitor, kind, text, author: c.me });
   const meta = (c: CrmData, id: string) => (c.meta[id] ??= {});
 
+  const api = (method: string, body?: unknown) =>
+    fetch('/api/visitors', {
+      method,
+      headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  const refresh = (remote = get().remote) =>
+    set({ remote, records: merge(loadRecords(), remote, get().source), crm: loadCrm() });
+
   return {
+    source: 'checking',
+    storage: '',
+    authError: '',
+    remote: [],
+    connect: async (password) => {
+      if (password !== undefined) {
+        try {
+          sessionStorage.setItem(TOKEN_KEY, password);
+        } catch {
+          /* ignore */
+        }
+      }
+      let res: Response;
+      try {
+        res = await api('GET');
+      } catch {
+        return set({ source: 'local' });
+      }
+      const type = res.headers.get('content-type') || '';
+      if (res.status === 401) {
+        return set({ source: 'login', authError: password !== undefined ? 'Wrong password.' : '' });
+      }
+      if (!type.includes('application/json')) return set({ source: 'local' }); // static hosting, no API
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return set({ source: 'login', authError: data.error || `Server error ${res.status}` });
+      set({ source: 'remote', storage: data.storage, authError: '' });
+      refresh(data.records ?? []);
+    },
+    logout: () => {
+      try {
+        sessionStorage.removeItem(TOKEN_KEY);
+      } catch {
+        /* ignore */
+      }
+      set({ source: 'login', remote: [], records: merge(loadRecords(), []) });
+    },
+
     records: loadRecords(),
     crm: loadCrm(),
-    reload: () => set({ records: loadRecords(), crm: loadCrm() }),
+    reload: () => {
+      refresh();
+      if (get().source === 'remote') get().connect();
+    },
 
     setStatus: (ids, s) =>
       mutate((c) => {
@@ -209,7 +287,9 @@ export const useAdmin = create<AdminState>((set, get) => {
         for (const id of ids) delete c.meta[id];
         c.activity = c.activity.filter((a) => !ids.includes(a.visitor));
       });
-      set({ records: loadRecords() });
+      const serverIds = ids.filter((id) => get().remote.some((r) => r.id === id));
+      refresh(get().remote.filter((r) => !ids.includes(r.id)));
+      if (serverIds.length) api('DELETE', { ids: serverIds }).catch(() => {});
     },
     addTeammate: (name) =>
       mutate((c) => {
@@ -226,14 +306,16 @@ export const useAdmin = create<AdminState>((set, get) => {
 
     seedDemo: (n = 60) => {
       demoRecords(n, get().crm.team).forEach(saveRecord);
-      set({ records: loadRecords() });
+      refresh();
     },
     clearDemo: () => get().remove(get().records.filter((r) => r.demo).map((r) => r.id)),
     clearAll: () => {
-      get().records.forEach((r) => deleteRecord(r.id));
+      const ids = get().records.map((r) => r.id);
+      ids.forEach(deleteRecord);
+      if (get().remote.length) api('DELETE', { ids: get().remote.map((r) => r.id) }).catch(() => {});
       const crm = { ...emptyCrm(), team: get().crm.team, me: get().crm.me };
       saveCrm(crm);
-      set({ records: [], crm });
+      set({ remote: [], records: [], crm });
     },
     importJson: (json) => {
       const data = JSON.parse(json) as { records?: VisitorRecord[]; crm?: Partial<CrmData> };
@@ -251,7 +333,9 @@ export const useAdmin = create<AdminState>((set, get) => {
 
 // other tabs (the experience itself) write records while the panel is open
 addEventListener('storage', (e) => {
-  if (e.key === null || e.key === CRM_KEY || e.key.startsWith(REC_PREFIX)) useAdmin.getState().reload();
+  if (e.key === null || e.key === CRM_KEY || e.key.startsWith(REC_PREFIX)) {
+    useAdmin.setState((s) => ({ records: merge(loadRecords(), s.remote, s.source), crm: loadCrm() }));
+  }
 });
 
 export function joinVisitors(records: VisitorRecord[], crm: CrmData): Visitor[] {
@@ -297,6 +381,34 @@ export const stageLabel = (s: VisitorRecord['stage']) => STAGE_LABEL[s];
 
 // ───────────────────────── demo data ─────────────────────────
 const SECRETS = ['still', 'edge', 'restraint', 'glyph', 'exit-first'];
+// [city, region, country, lat, lon, timezone]
+const CITIES: [string, string, string, number, number, string][] = [
+  ['Kolkata', 'WB', 'IN', 22.57, 88.36, 'Asia/Kolkata'],
+  ['Mumbai', 'MH', 'IN', 19.08, 72.88, 'Asia/Kolkata'],
+  ['Bengaluru', 'KA', 'IN', 12.97, 77.59, 'Asia/Kolkata'],
+  ['New York', 'NY', 'US', 40.71, -74.01, 'America/New_York'],
+  ['San Francisco', 'CA', 'US', 37.77, -122.42, 'America/Los_Angeles'],
+  ['Austin', 'TX', 'US', 30.27, -97.74, 'America/Chicago'],
+  ['London', 'ENG', 'GB', 51.51, -0.13, 'Europe/London'],
+  ['Berlin', 'BE', 'DE', 52.52, 13.4, 'Europe/Berlin'],
+  ['Paris', 'IDF', 'FR', 48.86, 2.35, 'Europe/Paris'],
+  ['Tokyo', '13', 'JP', 35.68, 139.69, 'Asia/Tokyo'],
+  ['São Paulo', 'SP', 'BR', -23.55, -46.63, 'America/Sao_Paulo'],
+  ['Madrid', 'MD', 'ES', 40.42, -3.7, 'Europe/Madrid'],
+  ['Toronto', 'ON', 'CA', 43.65, -79.38, 'America/Toronto'],
+  ['Sydney', 'NSW', 'AU', -33.87, 151.21, 'Australia/Sydney'],
+  ['Singapore', '01', 'SG', 1.35, 103.82, 'Asia/Singapore'],
+  ['Dhaka', 'C', 'BD', 23.81, 90.41, 'Asia/Dhaka'],
+];
+const NAMES = ['nightowl', 'pixelghost', 'kira', 'deadlink', 'm0th', 'sounak', 'lumen', 'static_kid', 'aria', 'voidwalker', 'ronin', 'hex', 'juno', 'glitchy', 'nova', 'echo', 'zed', 'mira', 'cursorless', 'b1t'];
+const UAS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+  'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36',
+];
+// documentation-only address ranges (RFC 5737) so demo IPs are never real people
+const demoIp = () => `${['192.0.2', '198.51.100', '203.0.113'][Math.floor(Math.random() * 3)]}.${1 + Math.floor(Math.random() * 254)}`;
 const LANGS = ['en-US', 'en-GB', 'de-DE', 'fr-FR', 'ja-JP', 'pt-BR', 'es-ES', 'hi-IN'];
 const SIZES: [number, number, boolean][] = [
   [1440, 900, false],
@@ -329,9 +441,23 @@ function demoRecords(n: number, team: string[]): VisitorRecord[] {
     const predictionTotal = reach >= 1 ? 3 + Math.floor(rnd() * 5) : 0;
     const secrets = SECRETS.filter(() => rnd() < 0.08 + reach * 0.03);
     if (ending === 'observer' && !secrets.includes('glyph')) secrets.push('glyph');
+    const [city, region, country, lat, lon, timezone] = pick(CITIES);
+    const jitter = () => (rnd() - 0.5) * 0.3;
     out.push({
       id,
       code: `SUBJ-${id.slice(0, 4).toUpperCase()}`,
+      username: `${pick(NAMES)}${rnd() < 0.5 ? Math.floor(rnd() * 99) : ''}`,
+      net: {
+        ip: demoIp(),
+        country,
+        region,
+        city,
+        lat: lat + jitter(),
+        lon: lon + jitter(),
+        timezone,
+        ua: touch ? pick(UAS.slice(2)) : pick(UAS.slice(0, 2)),
+        referrer: pick(['', '', 'https://twitter.com/', 'https://www.reddit.com/', 'https://news.ycombinator.com/']),
+      },
       startedAt,
       updatedAt: startedAt + t * 1000,
       duration: t,

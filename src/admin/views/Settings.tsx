@@ -16,7 +16,17 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 
 export function downloadCsv(visitors: Visitor[]) {
   const cols: [string, (v: Visitor) => string | number][] = [
+    ['username', (v) => v.username ?? ''],
     ['code', (v) => v.code],
+    ['ip', (v) => v.net?.ip ?? ''],
+    ['city', (v) => v.net?.city ?? ''],
+    ['region', (v) => v.net?.region ?? ''],
+    ['country', (v) => v.net?.country ?? ''],
+    ['lat', (v) => v.net?.lat ?? ''],
+    ['lon', (v) => v.net?.lon ?? ''],
+    ['timezone', (v) => v.net?.timezone ?? ''],
+    ['user_agent', (v) => v.net?.ua ?? ''],
+    ['referrer', (v) => v.net?.referrer ?? ''],
     ['status', (v) => STATUS_LABEL[v.status]],
     ['score', (v) => v.score],
     ['owner', (v) => v.owner],
@@ -49,6 +59,7 @@ export default function Settings({ visitors }: { visitors: Visitor[] }) {
   const [msg, setMsg] = useState('');
   const file = useRef<HTMLInputElement>(null);
   const demo = records.filter((r) => r.demo).length;
+  const source = useAdmin((s) => s.source);
 
   return (
     <div className="settings">
@@ -91,8 +102,10 @@ export default function Settings({ visitors }: { visitors: Visitor[] }) {
 
       <Card title="Data">
         <p className="muted small">
-          {records.length} visitor records ({demo} demo) are stored in this browser’s local storage. Nothing is sent to a server,
-          so this panel only sees plays from this browser. Import an export file to merge data from elsewhere.
+          {records.length} visitor records ({demo} demo).{' '}
+          {source === 'remote'
+            ? 'Real visitors are stored on the server; demo data, notes and tags stay in this browser.'
+            : 'The server API is not reachable, so only plays from this browser are shown.'}
         </p>
         <div className="btn-row">
           <button className="btn" onClick={() => downloadCsv(visitors)}>
@@ -137,11 +150,14 @@ export default function Settings({ visitors }: { visitors: Visitor[] }) {
       </Card>
 
       <Card title="Danger zone" className="danger-card">
-        <p className="muted small">Delete every visitor record, note and activity entry in this browser.</p>
+        <p className="muted small">
+          Delete every visitor record, note and activity entry
+          {source === 'remote' ? ', including all records on the server.' : ' in this browser.'}
+        </p>
         <button
           className="btn danger"
           disabled={!records.length}
-          onClick={() => confirm('Delete all CRM data in this browser? This cannot be undone.') && a.clearAll()}
+          onClick={() => confirm('Delete all visitor data? This cannot be undone.') && a.clearAll()}
         >
           <Icon name="trash" /> Delete everything
         </button>

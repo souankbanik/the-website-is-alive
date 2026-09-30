@@ -1,0 +1,266 @@
+:root {
+  color-scheme: light;
+  --page: #f3efe6;
+  --card: #fbf9f4;
+  --ink: #111111;
+  --ink2: #4a4843;
+  --muted: #8a867c;
+  --line: #e2ddd1;
+  --head: #111111;
+  --head-ink: #f4f1ea;
+  --accent: #5b3fe0;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.muted {
+  color: var(--muted);
+}
+
+.loc {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+.loc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.loc-head h1,
+.loc-login h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.loc-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.loc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.loc-actions input,
+.loc-login input {
+  width: 260px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  outline: none;
+}
+.loc-actions input:focus,
+.loc-login input:focus {
+  border-color: var(--accent);
+}
+.loc-actions a,
+.loc-actions button {
+  padding: 8px 4px;
+  font-size: 13px;
+  color: var(--ink2);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.loc-actions a:hover,
+.loc-actions button:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.loc-table-wrap {
+  overflow-x: auto;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.loc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.loc-table th {
+  position: sticky;
+  top: 0;
+  padding: 11px 16px;
+  background: var(--head);
+  color: var(--head-ink);
+  font-weight: 500;
+  font-size: 15px;
+  text-align: left;
+  white-space: nowrap;
+}
+.loc-table th:nth-child(1) {
+  width: 22%;
+}
+.loc-table th:nth-child(2) {
+  width: 17%;
+}
+.loc-table th:nth-child(3) {
+  width: 22%;
+}
+.loc-table th:nth-child(4) {
+  width: 19%;
+}
+.loc-table td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+.loc-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.loc-table .main,
+.loc-table .sub {
+  display: block;
+}
+.loc-table .sub {
+  margin-top: 2px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--muted);
+}
+.loc-table .ref {
+  overflow-wrap: anywhere;
+}
+.cc {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+  vertical-align: 1px;
+}
+.loc-empty {
+  margin: 0;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.loc-center {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--muted);
+}
+.loc-error {
+  color: #c0392b;
+}
+.loc-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(360px, calc(100% - 32px));
+  margin: 18vh auto 0;
+}
+.loc-login p {
+  margin: 0;
+  color: var(--ink2);
+}
+.loc-login input {
+  width: 100%;
+  padding: 10px 12px;
+}
+.loc-login button {
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--head);
+  color: var(--head-ink);
+  cursor: pointer;
+}
+.loc-login button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* phones: each visit becomes a card */
+@media (max-width: 760px) {
+  .loc {
+    padding: 20px 16px 48px;
+  }
+  .loc-actions input {
+    width: 100%;
+  }
+  .loc-actions {
+    width: 100%;
+  }
+  .loc-table-wrap {
+    border: 0;
+    background: none;
+  }
+  .loc-table thead {
+    display: none;
+  }
+  .loc-table,
+  .loc-table tbody,
+  .loc-table tr,
+  .loc-table td {
+    display: block;
+  }
+  .loc-table tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    overflow: hidden;
+  }
+  .loc-table td {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px 14px;
+  }
+  .loc-table td:first-child {
+    border-top: 0;
+  }
+  .loc-table td::before {
+    content: attr(data-label);
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .loc-table td > * {
+    grid-column: 2;
+  }
+}

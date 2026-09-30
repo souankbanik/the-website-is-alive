@@ -1450,3 +1450,237 @@ input[type='checkbox'] {
 .kcard .score-bar {
   width: 36px;
 }
+
+/* ── usernames & places ── */
+.uname {
+  font-weight: 600;
+}
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.cc {
+  display: inline-block;
+  min-width: 24px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-align: center;
+  color: var(--text2);
+}
+.wrap {
+  overflow-wrap: anywhere;
+}
+.ua {
+  color: var(--text2);
+  overflow-wrap: anywhere;
+}
+.rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.rank li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 70px 28px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.rank li > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank .num {
+  text-align: right;
+}
+.rank-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--raised);
+  overflow: hidden;
+}
+.rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--violet);
+}
+
+/* ── map ── */
+.map {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0e0e10;
+  z-index: 0;
+}
+.map-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+  align-items: start;
+}
+.map-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.map-foot {
+  margin: 10px 0 0;
+}
+.leaflet-container {
+  font: 12.5px/1.4 var(--sans);
+  background: #0e0e10;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip,
+.leaflet-tooltip {
+  background: var(--raised);
+  color: var(--text);
+  border: 1px solid var(--hair2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.leaflet-tooltip-top::before {
+  border-top-color: var(--hair2);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--muted);
+}
+.leaflet-control-zoom a {
+  background: var(--raised) !important;
+  color: var(--text) !important;
+  border-color: var(--hair2) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(11, 11, 12, 0.7) !important;
+  color: var(--muted) !important;
+}
+.leaflet-control-attribution a {
+  color: var(--text2) !important;
+}
+.map-pop strong {
+  display: block;
+  font-size: 13px;
+}
+.map-pop em {
+  font-style: normal;
+  color: var(--muted);
+}
+.map-pop ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.map-pop li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.map-pop li:hover {
+  background: var(--hover);
+}
+.map-pop li span {
+  color: var(--muted);
+}
+
+/* ── login & banners ── */
+.boot {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(360px, 100%);
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+}
+.login-card .brand {
+  padding: 0;
+}
+.login-card p {
+  margin: 0;
+}
+.login-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--hair2);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--muted);
+}
+.login-field input {
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 10px 0;
+  outline: none;
+  color: var(--text);
+}
+.login-card .btn {
+  justify-content: center;
+  padding: 9px 12px;
+}
+.login-error {
+  margin: 0;
+  color: #ff8a8a;
+}
+.banner {
+  margin: 16px 28px 0;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--hair2);
+  background: var(--raised);
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.banner.warn {
+  border-color: rgba(250, 178, 25, 0.4);
+  background: rgba(250, 178, 25, 0.08);
+}
+@media (max-width: 1180px) {
+  .map-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 860px) {
+  .banner {
+    margin: 12px 16px 0;
+  }
+  .side-nav a {
+    padding: 6px 4px;
+  }
+}
+.map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
+}

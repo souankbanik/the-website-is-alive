@@ -1,11 +1,11 @@
 /**
  * Session memory. Everything here is generated inside this tab by the visitor's
- * interactions with the experience itself and lives in memory. A summary is
- * mirrored to this browser's localStorage for the admin panel (story/recorder.ts);
- * nothing is transmitted.
+ * interactions with the experience itself and lives in memory. A summary, with
+ * the username, is reported to the server for the admin panel (story/recorder.ts).
  */
 export const session = {
   start: performance.now(),
+  username: '',
   cursorDistance: 0,
   totalClicks: 0,
   scrollDistance: 0,

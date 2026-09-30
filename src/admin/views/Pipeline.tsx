@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STAGE_LABEL } from '../../store/records';
 import { fmtAgo, Status, STATUSES, STATUS_LABEL, useAdmin, Visitor } from '../store';
-import { Avatar, Icon, matches, Score } from '../ui';
+import { Avatar, displayName, Icon, matches, Score } from '../ui';
 import { openVisitor } from '../Admin';
 
 const HINT: Record<Status, string> = {
@@ -72,7 +72,7 @@ export default function Pipeline({ visitors, search }: { visitors: Visitor[]; se
                 >
                   <div className="kcard-top">
                     <Avatar v={v} size="sm" />
-                    <span className="mono">{v.code}</span>
+                    <strong className="uname">{displayName(v)}</strong>
                     {v.starred && (
                       <span className="star-on">
                         <Icon name="star" size={12} filled />
@@ -98,7 +98,7 @@ export default function Pipeline({ visitors, search }: { visitors: Visitor[]; se
                     <Score n={v.score} />
                   </div>
                   <div className="kcard-foot">
-                    <span className="muted">{v.owner === 'Unassigned' ? 'Unassigned' : v.owner}</span>
+                    <span className="muted">{v.net?.city || v.net?.country || (v.owner === 'Unassigned' ? 'Unassigned' : v.owner)}</span>
                     {v.notes.length > 0 && (
                       <span className="muted">
                         <Icon name="note" size={12} /> {v.notes.length}

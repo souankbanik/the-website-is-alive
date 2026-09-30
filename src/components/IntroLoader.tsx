@@ -3,10 +3,23 @@ import gsap from 'gsap';
 import { loadFonts } from '../utils/textures';
 import { beginExperience } from '../story/director';
 import { audio } from '../audio/engine';
+import { session } from '../store/session';
+
+const NAME_KEY = 'alive:username';
+const NAME_OK = /^[\p{L}\p{N}_. -]{2,20}$/u;
+const remembered = () => {
+  try {
+    return localStorage.getItem(NAME_KEY) || '';
+  } catch {
+    return '';
+  }
+};
 
 /** INITIALIZING INTERFACE — short, honest, then a choice of how to enter. */
 export default function IntroLoader() {
   const [ready, setReady] = useState(false);
+  const [name, setName] = useState(remembered);
+  const valid = NAME_OK.test(name.trim());
   const bar = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const pct = useRef<HTMLSpanElement>(null);
@@ -38,6 +51,13 @@ export default function IntroLoader() {
   }, []);
 
   const enter = (sound: boolean) => {
+    if (!valid) return;
+    session.username = name.trim();
+    try {
+      localStorage.setItem(NAME_KEY, session.username);
+    } catch {
+      /* ignore */
+    }
     audio.init();
     if (sound) audio.click();
     gsap.to(root.current, {
@@ -60,12 +80,35 @@ export default function IntroLoader() {
         <div className="intro-track">
           <div className="intro-bar" ref={bar} />
         </div>
-        <div className={`intro-enter ${ready ? 'is-ready' : ''}`}>
-          <button className="intro-btn" onClick={() => enter(true)} data-magnetic>
+        <form
+          className={`intro-name ${ready ? 'is-ready' : ''}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            enter(true);
+          }}
+        >
+          <label className="mono" htmlFor="intro-username">
+            WHO ARE YOU?
+          </label>
+          <input
+            id="intro-username"
+            className="intro-input mono"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="username"
+            maxLength={20}
+            autoComplete="nickname"
+            spellCheck={false}
+            required
+          />
+          <p className="intro-note mono">A username is required to play. Your username, IP address and approximate location are recorded.</p>
+        </form>
+        <div className={`intro-enter ${ready ? 'is-ready' : ''} ${valid ? '' : 'is-locked'}`}>
+          <button className="intro-btn" onClick={() => enter(true)} disabled={!valid} data-magnetic>
             Enter with sound
           </button>
           <span className="intro-sep" />
-          <button className="intro-btn is-quiet" onClick={() => enter(false)} data-magnetic>
+          <button className="intro-btn is-quiet" onClick={() => enter(false)} disabled={!valid} data-magnetic>
             Enter in silence
           </button>
         </div>

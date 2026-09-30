@@ -7,11 +7,14 @@ import Pipeline from './views/Pipeline';
 import Activity from './views/Activity';
 import Settings from './views/Settings';
 import VisitorDrawer from './views/VisitorDrawer';
+import MapView from './views/MapView';
+import Login from './views/Login';
 
-export type View = 'dashboard' | 'visitors' | 'pipeline' | 'activity' | 'settings';
+export type View = 'dashboard' | 'visitors' | 'map' | 'pipeline' | 'activity' | 'settings';
 const NAV: { id: View; label: string; icon: IconName }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
   { id: 'visitors', label: 'Visitors', icon: 'users' },
+  { id: 'map', label: 'Map', icon: 'globe' },
   { id: 'pipeline', label: 'Pipeline', icon: 'columns' },
   { id: 'activity', label: 'Activity', icon: 'pulse' },
   { id: 'settings', label: 'Settings', icon: 'gear' },
@@ -35,6 +38,14 @@ export default function Admin() {
   const visitors = useVisitors();
   const reload = useAdmin((s) => s.reload);
   const me = useAdmin((s) => s.crm.me);
+  const source = useAdmin((s) => s.source);
+  const storage = useAdmin((s) => s.storage);
+  const connect = useAdmin((s) => s.connect);
+  const logout = useAdmin((s) => s.logout);
+
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
   useEffect(() => {
     const on = () => setRoute(parseHash());
@@ -46,6 +57,9 @@ export default function Admin() {
       clearInterval(id);
     };
   }, [reload]);
+
+  if (source === 'checking') return <div className="boot muted">Loading…</div>;
+  if (source === 'login') return <Login />;
 
   const live = visitors.filter((v) => v.live).length;
   const open = route.id ? visitors.find((v) => v.id === route.id) : undefined;
@@ -79,6 +93,9 @@ export default function Admin() {
             <span className={`live-dot ${live ? 'is-on' : ''}`} />
             {live} live now
           </div>
+          <a className="side-link" href="/location" target="_blank" rel="noreferrer">
+            <Icon name="pin" /> Location log
+          </a>
           <a className="side-link" href="./" target="_blank" rel="noreferrer">
             <Icon name="external" /> Open the experience
           </a>
@@ -97,15 +114,33 @@ export default function Admin() {
               onChange={(e) => onSearch(e.target.value)}
             />
           </label>
-          <div className="me" title="Signed in locally">
+          <div className="me" title={source === 'remote' ? 'Signed in' : 'Local mode'}>
             <span className="avatar sm">{me.slice(0, 2).toUpperCase()}</span>
             <span className="me-name">{me}</span>
           </div>
+          {source === 'remote' && (
+            <button className="icon-btn" onClick={logout} title="Sign out" aria-label="Sign out">
+              <Icon name="logout" />
+            </button>
+          )}
         </header>
+        {source === 'local' && (
+          <div className="banner">
+            Local mode: the visitor API isn’t reachable, so only plays from this browser are shown and IP addresses and
+            locations are unavailable.
+          </div>
+        )}
+        {source === 'remote' && storage === 'memory' && (
+          <div className="banner warn">
+            No database is connected. Visitor records are held in server memory and will disappear on restart. Connect
+            Upstash Redis in Vercel to keep them.
+          </div>
+        )}
 
         <main className="content">
           {route.view === 'dashboard' && <Dashboard visitors={visitors} />}
           {route.view === 'visitors' && <Visitors visitors={visitors} search={search} />}
+          {route.view === 'map' && <MapView visitors={visitors} />}
           {route.view === 'pipeline' && <Pipeline visitors={visitors} search={search} />}
           {route.view === 'activity' && <Activity visitors={visitors} />}
           {route.view === 'settings' && <Settings visitors={visitors} />}

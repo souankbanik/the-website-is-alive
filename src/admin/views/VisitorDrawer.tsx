@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { STAGE_LABEL, STAGE_ORDER, stageIndex } from '../../store/records';
 import { ENDING_LABEL, fmtAgo, fmtDate, fmtDur, Status, STATUSES, STATUS_LABEL, useAdmin, Visitor } from '../store';
-import { Avatar, Icon, Score, StatusBadge } from '../ui';
+import { Avatar, countryName, describeUa, displayName, Icon, Score, StatusBadge } from '../ui';
+import { VisitorMap } from './MapView';
 
 const SECRET_LABEL: Record<string, string> = {
   still: 'Kept still when asked',
@@ -11,7 +12,7 @@ const SECRET_LABEL: Record<string, string> = {
   'exit-first': 'Killed Exit first',
 };
 
-type Tab = 'overview' | 'journey' | 'notes';
+type Tab = 'overview' | 'location' | 'journey' | 'notes';
 
 export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () => void }) {
   const a = useAdmin();
@@ -44,17 +45,17 @@ export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () 
 
   return (
     <div className="drawer-wrap" onClick={onClose}>
-      <aside className="drawer" role="dialog" aria-label={`Visitor ${v.code}`} onClick={(e) => e.stopPropagation()}>
+      <aside className="drawer" role="dialog" aria-label={`Visitor ${displayName(v)}`} onClick={(e) => e.stopPropagation()}>
         <header className="drawer-head">
           <Avatar v={v} size="lg" />
           <div className="drawer-title">
-            <h2 className="mono">
-              {v.code}
+            <h2>
+              {displayName(v)}
               {v.live && <span className="live-tag">live</span>}
               {v.demo && <span className="demo-tag">demo</span>}
             </h2>
             <p className="muted small">
-              First seen {fmtDate(v.startedAt)} · last seen {fmtAgo(v.updatedAt)}
+              <span className="mono">{v.code}</span> · first seen {fmtDate(v.startedAt)} · last seen {fmtAgo(v.updatedAt)}
             </p>
           </div>
           <button className="icon-btn" onClick={() => a.toggleStar(v.id)} aria-pressed={v.starred} aria-label="Star">
@@ -118,7 +119,7 @@ export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () 
         </div>
 
         <nav className="tabs">
-          {(['overview', 'journey', 'notes'] as Tab[]).map((t) => (
+          {(['overview', 'location', 'journey', 'notes'] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? 'is-on' : ''} onClick={() => setTab(t)}>
               {t === 'notes' ? `Notes (${v.notes.length})` : t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -159,6 +160,8 @@ export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () 
               </p>
             </>
           )}
+
+          {tab === 'location' && <Location v={v} />}
 
           {tab === 'journey' && (
             <ol className="journey">
@@ -218,7 +221,7 @@ export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () 
           <button
             className="btn danger ghost"
             onClick={() => {
-              if (confirm(`Delete ${v.code}? This cannot be undone.`)) {
+              if (confirm(`Delete ${displayName(v)}? This cannot be undone.`)) {
                 a.remove([v.id]);
                 onClose();
               }
@@ -229,5 +232,54 @@ export default function VisitorDrawer({ v, onClose }: { v: Visitor; onClose: () 
         </footer>
       </aside>
     </div>
+  );
+}
+
+function Location({ v }: { v: Visitor }) {
+  const n = v.net;
+  if (!n) {
+    return (
+      <p className="muted small">
+        No network data. IP address and location are added by the server when the visitor plays with a username; this record
+        only exists in this browser.
+      </p>
+    );
+  }
+  const rows: [string, string][] = [
+    ['Username', v.username || '—'],
+    ['IP address', n.ip || '—'],
+    ...(n.lastIp ? ([['IP changed to', n.lastIp]] as [string, string][]) : []),
+    ['City', n.city || '—'],
+    ['Region', n.region || '—'],
+    ['Country', n.country ? `${countryName(n.country)} (${n.country})` : '—'],
+    ['Coordinates', n.lat != null && n.lon != null ? `${n.lat.toFixed(3)}, ${n.lon.toFixed(3)}` : '—'],
+    ['Time zone', n.timezone || '—'],
+    ['Browser', describeUa(n.ua) || '—'],
+    ['Referrer', n.referrer || 'Direct'],
+  ];
+  return (
+    <>
+      <dl className="facts">
+        {rows.map(([k, val]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd className="wrap">{val}</dd>
+          </div>
+        ))}
+      </dl>
+      {n.lat != null && n.lon != null && (
+        <>
+          <h3>On the map</h3>
+          <VisitorMap visitors={[v]} height={220} zoom={9} />
+        </>
+      )}
+      {n.ua && (
+        <>
+          <h3>User agent</h3>
+          <p className="mono small ua">{n.ua}</p>
+        </>
+      )}
+      <p className="muted small">Location is approximate, based on the IP address.</p>
+    </>
   );
 }
