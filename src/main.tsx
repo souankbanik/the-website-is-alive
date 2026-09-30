@@ -6,6 +6,7 @@ import { initInput, tickInput } from './hooks/input';
 import { world } from './scenes/world';
 import { engine } from './gameplay/engine';
 import { startFavicon } from './utils/favicon';
+import { startRecorder } from './story/recorder';
 import { device } from './utils/device';
 import './styles/global.css';
 
@@ -16,6 +17,7 @@ initInput();
 world.init(document.getElementById('gl') as HTMLCanvasElement);
 engine.init(document.getElementById('game') as HTMLCanvasElement);
 startFavicon();
+startRecorder();
 
 document.documentElement.classList.toggle('touch', device.touch);
 document.documentElement.classList.toggle('low', device.low);

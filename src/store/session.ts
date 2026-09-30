@@ -1,7 +1,8 @@
 /**
  * Session memory. Everything here is generated inside this tab by the visitor's
- * interactions with the experience itself, lives only in memory, and is gone
- * when the tab closes. Nothing is persisted or transmitted.
+ * interactions with the experience itself and lives in memory. A summary is
+ * mirrored to this browser's localStorage for the admin panel (story/recorder.ts);
+ * nothing is transmitted.
  */
 export const session = {
   start: performance.now(),
